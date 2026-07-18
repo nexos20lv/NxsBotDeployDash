@@ -136,6 +136,15 @@ class PM2Manager {
         });
     });
   }
+  async flushLogs(botId) {
+    if (!this.connected) await this.connect();
+    return new Promise((resolve, reject) => {
+      pm2.flush(`bot_${botId}`, (err, apps) => {
+        if (err) return reject(err);
+        resolve(apps);
+      });
+    });
+  }
 }
 
 module.exports = new PM2Manager();

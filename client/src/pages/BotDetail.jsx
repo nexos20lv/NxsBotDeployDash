@@ -58,6 +58,15 @@ export default function BotDetail({ token, user }) {
     } catch(e) { console.error(e); }
   };
 
+  const clearLogs = async () => {
+    try {
+      const res = await fetch(`/api/bots/${id}/logs/clear`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.ok) {
+        setLogs({ out: '', err: '' });
+      }
+    } catch(e) { console.error(e); }
+  };
+
   // --- FILE MANAGER ---
   const fetchFiles = async (dir = '') => {
     try {
@@ -197,11 +206,19 @@ export default function BotDetail({ token, user }) {
     >
       {/* TAB CONTENT */}
       {activeTab === 'console' && (
-        <div className="clay-card">
-          <div className="terminal-box" ref={terminalRef} style={{ height: '600px' }}>
-            {logs.out && <div style={{ whiteSpace: 'pre-wrap' }}>{logs.out}</div>}
-            {logs.err && <div style={{ color: '#ff5555', whiteSpace: 'pre-wrap' }}>{logs.err}</div>}
-            {!logs.out && !logs.err && <div style={{ color: '#888' }}>Waiting for logs...</div>}
+        <div className="clay-card" style={{ display: 'flex', flexDirection: 'column', height: '650px' }}>
+          <div className="flex justify-between items-center mb-4">
+            <h3 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TermIcon size={20} /> Live Console
+            </h3>
+            <button className="clay-btn" style={{ padding: '6px 12px', fontSize: '0.85rem' }} onClick={clearLogs}>
+              <Trash2 size={14} /> Clear Logs
+            </button>
+          </div>
+          <div className="terminal-box" ref={terminalRef} style={{ flex: 1, padding: '20px', fontSize: '0.95rem', lineHeight: '1.4' }}>
+            {logs.out && <div style={{ whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{logs.out}</div>}
+            {logs.err && <div style={{ color: '#ff5555', whiteSpace: 'pre-wrap', fontFamily: 'monospace', marginTop: '10px' }}>{logs.err}</div>}
+            {!logs.out && !logs.err && <div style={{ color: '#888', fontStyle: 'italic' }}>Waiting for logs...</div>}
           </div>
         </div>
       )}

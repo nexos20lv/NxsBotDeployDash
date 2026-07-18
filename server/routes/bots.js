@@ -128,8 +128,24 @@ router.get('/:id/logs', authenticateToken, (req, res) => {
         res.status(500).json({ error: e.message || 'Failed to get logs' });
       }
     });
+    });
 });
 
+// Clear bot logs
+router.post('/:id/logs/clear', authenticateToken, (req, res) => {
+    db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], async (err, bot) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (!bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+  
+      try {
+        await pm2Manager.flushLogs(bot.id);
+        res.json({ message: 'Logs cleared successfully' });
+      } catch (e) {
+        res.status(500).json({ error: e.message || 'Failed to clear logs' });
+      }
+    });
+});
 
 // File list
 router.get('/:id/files', authenticateToken, (req, res) => {
