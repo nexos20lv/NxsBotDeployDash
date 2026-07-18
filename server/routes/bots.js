@@ -2,7 +2,9 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const db = require('../db');
+const multer = require('multer');
 const { authenticateToken } = require('./auth');
 const pm2Manager = require('../pm2-manager');
 
@@ -42,8 +44,10 @@ router.post('/', authenticateToken, (req, res) => {
       return res.status(403).json({ error: "Only admins can create new bot hostings." });
   }
 
-  db.run("INSERT INTO bots (name, type, start_command, main_file, owner_id, directory, status) VALUES (?, ?, ?, ?, ?, ?, ?)", 
-    [name, type, start_command, main_file, owner_id, '', 'offline'], 
+  const ftp_password = crypto.randomBytes(5).toString('hex');
+
+  db.run("INSERT INTO bots (name, type, start_command, main_file, owner_id, directory, status, ftp_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+    [name, type, start_command, main_file, owner_id, '', 'offline', ftp_password], 
     function(err) {
       if (err) return res.status(500).json({ error: err.message });
       
@@ -54,7 +58,7 @@ router.post('/', authenticateToken, (req, res) => {
       // Update the directory
       db.run("UPDATE bots SET directory = ? WHERE id = ?", [botDir, botId]);
       
-      res.json({ id: botId, name, type, directory: botDir });
+      res.json({ id: botId, name, type, directory: botDir, ftp_password });
   });
 });
 
@@ -190,6 +194,47 @@ router.get('/:id/fs/list', authenticateToken, (req, res) => {
       } catch (e) {
         res.status(400).json({ error: e.message });
       }
+  });
+});
+
+// Setup Multer for file uploads (storing temporarily in memory or directly to destination)
+const upload = multer({ dest: '/tmp/' });
+
+// Upload a file to the bot's directory
+router.post('/:id/fs/upload', authenticateToken, upload.single('file'), (req, res) => {
+  const { id } = req.params;
+  const targetPath = req.body.path || '';
+
+  if (!req.file) return res.status(400).json({ error: "No file uploaded." });
+
+  db.get("SELECT * FROM bots WHERE id = ?", [id], (err, bot) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!bot) return res.status(404).json({ error: "Bot not found" });
+    if (bot.owner_id !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: "Access denied" });
+    }
+
+    const destDir = path.join(bot.directory, targetPath);
+    
+    // Prevent directory traversal
+    if (!destDir.startsWith(bot.directory)) {
+      fs.unlinkSync(req.file.path);
+      return res.status(403).json({ error: "Invalid path" });
+    }
+
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    const destFile = path.join(destDir, req.file.originalname);
+    
+    fs.rename(req.file.path, destFile, (err) => {
+      if (err) {
+        fs.unlinkSync(req.file.path);
+        return res.status(500).json({ error: "Failed to save file." });
+      }
+      res.json({ message: "File uploaded successfully." });
+    });
   });
 });
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, Square, RefreshCw, ArrowLeft, Terminal as TermIcon, Folder, Key, Settings, Save, FileText, Trash2 } from 'lucide-react';
+import { Play, Square, RefreshCw, ArrowLeft, Terminal as TermIcon, Folder, Key, Settings, Save, FileText, Trash2, Upload, Server, Network } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import Layout from '../components/Layout';
 
@@ -197,7 +197,39 @@ export default function BotDetail({ token, user }) {
       {activeTab === 'files' && (
         <div className="grid grid-cols-3 gap-6">
           <div className="clay-card" style={{ height: '600px', overflowY: 'auto' }}>
-            <h3 className="mb-4">File Explorer</h3>
+            <div className="flex justify-between items-center mb-4">
+              <h3 style={{ margin: 0 }}>File Explorer</h3>
+              <label className="clay-btn btn-success" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Upload size={14} /> Upload File
+                <input 
+                  type="file" 
+                  style={{ display: 'none' }} 
+                  onChange={async (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('path', currentPath);
+                    try {
+                      const res = await fetch(`/api/bots/${bot.id}/fs/upload`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                      });
+                      if (res.ok) {
+                        fetchFiles(currentPath);
+                      } else {
+                        const data = await res.json();
+                        alert("Upload failed: " + data.error);
+                      }
+                    } catch(err) {
+                      alert("Upload failed");
+                    }
+                    e.target.value = null;
+                  }} 
+                />
+              </label>
+            </div>
             {currentPath !== '' && (
               <div 
                 className="flex items-center gap-2 mb-2" 
@@ -274,13 +306,57 @@ export default function BotDetail({ token, user }) {
       )}
 
       {activeTab === 'settings' && (
-        <div className="clay-card">
-          <h3>Settings & Backups</h3>
+        <div className="clay-card p-8">
+          <h3 className="mb-6 text-xl">Settings</h3>
           
-          <div className="grid grid-cols-2 gap-8 mt-8">
-            <div>
-              <h4><RefreshCw size={16} className="inline mr-2" /> GitHub Auto-Deploy Webhook</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }} className="mt-2">
+          <div className="flex-col gap-6 flex">
+            {/* FTP Connection Details */}
+            <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="flex items-center gap-3 mb-4">
+                <div style={{ background: 'rgba(52, 152, 219, 0.2)', padding: '10px', borderRadius: '10px' }}>
+                  <Network size={24} color="#3498db" />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem' }}>FTP Connection Details</h4>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connect via FileZilla or WinSCP to manage your bot's files.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4" style={{ fontSize: '0.9rem' }}>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Host</p>
+                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>{window.location.hostname}</code>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Port</p>
+                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>2121</code>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Username</p>
+                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>bot_{bot.id}</code>
+                </div>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
+                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Password</p>
+                  <code 
+                    style={{ fontSize: '1rem', color: 'var(--accent)', cursor: 'pointer' }}
+                    onClick={(e) => {
+                      if (e.target.innerText === '••••••••••') {
+                        e.target.innerText = bot.ftp_password || 'Not generated yet (Restart panel)';
+                      } else {
+                        e.target.innerText = '••••••••••';
+                      }
+                    }}
+                  >
+                    ••••••••••
+                  </code>
+                  <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>(Click to reveal)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* GitHub Auto-Deploy */}
+            <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+              <h4 className="flex items-center gap-2 mb-2" style={{ fontSize: '1.1rem' }}><RefreshCw size={20} color="var(--accent)" /> GitHub Auto-Deploy Webhook</h4>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                 Paste this URL into your GitHub repository settings (Settings {'>'} Webhooks {'>'} Add webhook) to automatically deploy code when you push.
               </p>
               <div className="mt-4 flex gap-2">
@@ -295,66 +371,67 @@ export default function BotDetail({ token, user }) {
               </div>
             </div>
 
-            <div>
-              <h4>Bot Information</h4>
-              <div className="mt-2" style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+            {/* Dependencies & Backups */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h4 className="mb-2" style={{ fontSize: '1.1rem' }}>📦 Dependency Installer</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                  Automatically run <code>npm install</code> or <code>pip install -r requirements.txt</code> in your bot's folder.
+                </p>
+                <button 
+                  className="clay-btn btn-success w-full" 
+                  onClick={async (e) => {
+                    e.target.disabled = true;
+                    e.target.innerText = 'Installing...';
+                    try {
+                      const res = await fetch(`/api/bots/${bot.id}/install`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                      const data = await res.json();
+                      alert(data.message || data.error);
+                    } finally {
+                      e.target.disabled = false;
+                      e.target.innerText = 'Install Dependencies';
+                    }
+                  }}
+                >
+                  Install Dependencies
+                </button>
+              </div>
+
+              <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                <h4 className="mb-2" style={{ fontSize: '1.1rem' }}>🗄️ Create Backup</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                  Download a complete ZIP archive of your bot's directory including all code and assets.
+                </p>
+                <button 
+                  className="clay-btn w-full" 
+                  onClick={() => {
+                    const url = `/api/bots/${bot.id}/backups/download`;
+                    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+                      .then(res => res.blob())
+                      .then(blob => {
+                        const a = document.createElement('a');
+                        a.href = window.URL.createObjectURL(blob);
+                        a.download = `backup_${bot.name}.zip`;
+                        a.click();
+                      });
+                  }}
+                >
+                  Download ZIP
+                </button>
+              </div>
+            </div>
+
+            {/* Bot Info */}
+            <div className="p-6 mt-4" style={{ background: 'rgba(0,0,0,0.1)', borderRadius: '12px' }}>
+              <h4 style={{ fontSize: '1rem', marginBottom: '8px' }}>Bot Information</h4>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
                 <p>Type: <span style={{ color: 'var(--accent)' }}>{bot.type.toUpperCase()}</span></p>
                 <p>Start Cmd: <code>{bot.start_command}</code></p>
                 <p>Main File: <code>{bot.main_file}</code></p>
                 <p>Directory: <code>{bot.directory}</code></p>
               </div>
             </div>
-          </div>
-
-          <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.1)', margin: '2rem 0' }} />
-
-          <div className="grid grid-cols-2 gap-8">
-            <div className="p-4" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-              <h4 className="mb-2">📦 Dependency Installer</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                Automatically run <code>npm install</code> or <code>pip install -r requirements.txt</code> in your bot's folder.
-              </p>
-              <button 
-                className="clay-btn btn-success" 
-                onClick={async (e) => {
-                  e.target.disabled = true;
-                  e.target.innerText = 'Installing...';
-                  try {
-                    const res = await fetch(`/api/bots/${bot.id}/install`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-                    const data = await res.json();
-                    alert(data.message || data.error);
-                  } finally {
-                    e.target.disabled = false;
-                    e.target.innerText = 'Install Dependencies';
-                  }
-                }}
-              >
-                Install Dependencies
-              </button>
-            </div>
-
-            <div className="p-4" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '8px' }}>
-              <h4 className="mb-2">🗄️ Create Backup</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1rem' }}>
-                Download a complete ZIP archive of your bot's directory including all code and assets.
-              </p>
-              <button 
-                className="clay-btn" 
-                onClick={() => {
-                  const url = `/api/bots/${bot.id}/backups/download`;
-                  fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-                    .then(res => res.blob())
-                    .then(blob => {
-                      const a = document.createElement('a');
-                      a.href = window.URL.createObjectURL(blob);
-                      a.download = `backup_${bot.name}.zip`;
-                      a.click();
-                    });
-                }}
-              >
-                Download ZIP
-              </button>
-            </div>
+            
           </div>
         </div>
       )}

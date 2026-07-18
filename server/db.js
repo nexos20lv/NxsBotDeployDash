@@ -25,9 +25,15 @@ db.serialize(() => {
       owner_id INTEGER,
       directory TEXT,
       status TEXT DEFAULT 'offline',
+      ftp_password TEXT,
       FOREIGN KEY(owner_id) REFERENCES users(id)
     )
   `);
+
+  // Migration for existing databases
+  db.run(`ALTER TABLE bots ADD COLUMN ftp_password TEXT`, (err) => {
+    // Ignore error if column already exists
+  });
   
   // Create default admin if not exists
   const bcrypt = require('bcrypt');

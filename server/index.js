@@ -5,6 +5,10 @@ const http = require('http');
 const WebSocket = require('ws');
 const pm2Manager = require('./pm2-manager');
 const db = require('./db');
+const startFtpServer = require('./ftp-server');
+
+// Start FTP Server
+startFtpServer();
 
 const app = express();
 const server = http.createServer(app);
