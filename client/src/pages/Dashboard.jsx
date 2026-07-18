@@ -23,20 +23,6 @@ export default function Dashboard({ token, user }) {
     fetchBots();
   }, []);
 
-  const handleUpdate = async () => {
-    if(!confirm("Are you sure you want to update the panel? It will pull from GitHub and restart the server.")) return;
-    try {
-      const res = await fetch('/api/auth/update', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      alert(data.message);
-    } catch(e) {
-      console.error(e);
-      alert("Failed to trigger update.");
-    }
-  };
 
   return (
     <div className="mt-8">
@@ -44,13 +30,6 @@ export default function Dashboard({ token, user }) {
         <div>
           <h2>Your Bots</h2>
           <p style={{ color: 'var(--text-muted)' }}>Manage your hosted Discord applications</p>
-        </div>
-        <div className="flex gap-4">
-          {user && user.role === 'admin' && (
-            <button className="clay-btn btn-danger" onClick={handleUpdate}>
-              <Download size={20} /> Update Panel
-            </button>
-          )}
         </div>
       </div>
 

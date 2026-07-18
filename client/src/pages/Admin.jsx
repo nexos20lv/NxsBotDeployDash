@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Server, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { Users, Server, Plus, Trash2, ArrowLeft, Download, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function Admin({ token }) {
@@ -9,6 +9,10 @@ export default function Admin({ token }) {
   const [showBotModal, setShowBotModal] = useState(false);
   const [newUser, setNewUser] = useState({ username: '', password: '', role: 'user' });
   const [newBot, setNewBot] = useState({ name: '', type: 'nodejs', main_file: 'index.js', start_command: 'node index.js', assigned_owner_id: '' });
+  
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateLogs, setUpdateLogs] = useState('');
+  const updateTerminalRef = React.useRef(null);
 
   const fetchData = async () => {
     try {
@@ -22,6 +26,35 @@ export default function Admin({ token }) {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const handleUpdatePanel = () => {
+    if(!confirm("Are you sure you want to update the panel? It will pull from GitHub and restart the server.")) return;
+    
+    setShowUpdateModal(true);
+    setUpdateLogs("Starting update process...\nConnecting to server...\n");
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname === 'localhost' ? 'localhost:3001' : window.location.host;
+    const socket = new WebSocket(`${protocol}//${host}`);
+    
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ action: 'update_panel', token }));
+    };
+    
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.type === 'update_logs') {
+        setUpdateLogs(prev => prev + message.data);
+        if (updateTerminalRef.current) {
+          updateTerminalRef.current.scrollTop = updateTerminalRef.current.scrollHeight;
+        }
+      }
+    };
+    
+    socket.onerror = () => {
+      setUpdateLogs(prev => prev + "\n[Error] Connection lost. The server might be restarting.");
+    };
+  };
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
@@ -72,8 +105,15 @@ export default function Admin({ token }) {
         <ArrowLeft size={20} /> Back to Dashboard
       </Link>
 
-      <h2>Admin Panel</h2>
-      <p style={{ color: 'var(--text-muted)' }} className="mb-8">Manage clients and allocate hostings.</p>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2>Admin Panel</h2>
+          <p style={{ color: 'var(--text-muted)' }}>Manage clients and allocate hostings.</p>
+        </div>
+        <button className="clay-btn btn-danger flex items-center gap-2" onClick={handleUpdatePanel}>
+          <Download size={20} /> Update Panel
+        </button>
+      </div>
 
       <div className="grid grid-cols-2 gap-8">
         {/* Users Section */}
@@ -177,6 +217,20 @@ export default function Admin({ token }) {
                 <button type="submit" className="clay-btn btn-success w-full">Create Hosting</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showUpdateModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div className="clay-card" style={{ width: '800px', maxWidth: '90vw' }}>
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="flex items-center gap-2"><Terminal size={20} /> Panel Update Log</h3>
+              <button className="clay-btn btn-danger" onClick={() => setShowUpdateModal(false)}>Close</button>
+            </div>
+            <div className="terminal-box" ref={updateTerminalRef} style={{ height: '400px', whiteSpace: 'pre-wrap', fontFamily: 'monospace', fontSize: '0.9rem' }}>
+              {updateLogs}
+            </div>
           </div>
         </div>
       )}

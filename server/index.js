@@ -85,6 +85,22 @@ wss.on('connection', (ws, req) => {
                         // ignore errors
                     }
                 }, 2000); // Poll every 2 seconds
+            } else if (data.action === 'update_panel' && data.token) {
+                const jwt = require('jsonwebtoken');
+                const JWT_SECRET = process.env.JWT_SECRET || 'nxs_bot_deploy_super_secret';
+                jwt.verify(data.token, JWT_SECRET, (err, user) => {
+                    if (err || user.role !== 'admin') return ws.send(JSON.stringify({ type: 'update_logs', data: 'Unauthorized\n' }));
+                    
+                    const { spawn } = require('child_process');
+                    const path = require('path');
+                    const updateScript = path.join(__dirname, '..', 'update.sh');
+                    
+                    const updateProcess = spawn('bash', [updateScript]);
+                    
+                    updateProcess.stdout.on('data', (d) => ws.send(JSON.stringify({ type: 'update_logs', data: d.toString() })));
+                    updateProcess.stderr.on('data', (d) => ws.send(JSON.stringify({ type: 'update_logs', data: d.toString() })));
+                    updateProcess.on('close', (code) => ws.send(JSON.stringify({ type: 'update_logs', data: `\nUpdate process exited with code ${code}\nPanel will restart if successful.` })));
+                });
             }
         } catch(e) {
             console.error("WS error", e);
@@ -98,7 +114,6 @@ wss.on('connection', (ws, req) => {
 });
 
 const PORT = process.env.PORT || 3001;
-
 server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server is running on port ${PORT}`);
 });
