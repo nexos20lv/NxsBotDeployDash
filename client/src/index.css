@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --bg-color: #130a1c; /* Very dark deep purple */
+  --clay-bg: #27163b; /* Base purple for cards */
+  --clay-highlight: rgba(186, 134, 252, 0.25); /* Light purple highlight */
+  --clay-shadow: rgba(0, 0, 0, 0.5); /* Dark shadow */
+  --text-main: #f0e6ff;
+  --text-muted: #a78bca;
+  --accent: #8A2BE2; /* BlueViolet */
+  --accent-hover: #9b4dff;
+  --success: #2ECC71;
+  --danger: #E74C3C;
+  --terminal-bg: #0a0510;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, p {
+  margin: 0;
+}
+
+.clay-card {
+  background: var(--clay-bg);
+  border-radius: 24px;
+  box-shadow: 
+    10px 10px 20px var(--clay-shadow), 
+    -5px -5px 15px rgba(255, 255, 255, 0.03),
+    inset 2px 2px 5px var(--clay-highlight), 
+    inset -3px -3px 7px var(--clay-shadow);
+  padding: 24px;
+  transition: transform 0.3s ease;
+}
+
+.clay-card:hover {
+  transform: translateY(-2px);
+}
+
+.clay-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 16px;
+  padding: 12px 24px;
+  font-weight: 600;
+  font-size: 1rem;
+  font-family: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 
+    4px 4px 10px var(--clay-shadow),
+    inset 2px 2px 5px rgba(255, 255, 255, 0.3),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
+}
+
+.clay-btn:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+}
+
+.clay-btn:active {
+  transform: translateY(1px);
+  box-shadow: 
+    2px 2px 5px var(--clay-shadow),
+    inset 3px 3px 8px rgba(0, 0, 0, 0.4),
+    inset -2px -2px 4px rgba(255, 255, 255, 0.1);
+}
+
+.clay-btn.btn-danger { background: var(--danger); }
+.clay-btn.btn-danger:hover { background: #ff5e4d; }
+.clay-btn.btn-success { background: var(--success); }
+.clay-btn.btn-success:hover { background: #3ddc80; }
+
+.clay-input {
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  padding: 14px 20px;
+  color: var(--text-main);
+  width: 100%;
+  font-family: inherit;
+  font-size: 1rem;
+  box-shadow: 
+    inset 4px 4px 8px rgba(0,0,0,0.4),
+    inset -2px -2px 5px rgba(255,255,255,0.05);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.clay-input:focus {
+  border-color: var(--accent);
+  box-shadow: 
+    inset 4px 4px 8px rgba(0,0,0,0.5),
+    inset -2px -2px 5px rgba(255,255,255,0.05),
+    0 0 0 3px rgba(138, 43, 226, 0.3);
+}
+
+.terminal-box {
+  background: var(--terminal-bg);
+  border-radius: 16px;
+  padding: 16px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.9rem;
+  color: #00ff00;
+  height: 400px;
+  overflow-y: auto;
+  box-shadow: inset 4px 4px 10px rgba(0,0,0,0.8);
+}
+
+/* Utilities */
+.flex { display: flex; }
+.flex-col { display: flex; flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mt-8 { margin-top: 2rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-8 { margin-bottom: 2rem; }
+.text-center { text-align: center; }
+.w-full { width: 100%; }
+.h-screen { height: 100vh; }
+.p-8 { padding: 2rem; }
+.container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; }
+.grid { display: grid; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* specific */
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: bold;
+}
+.badge-online { background: rgba(46, 204, 113, 0.2); color: var(--success); }
+.badge-offline { background: rgba(231, 76, 60, 0.2); color: var(--danger); }
