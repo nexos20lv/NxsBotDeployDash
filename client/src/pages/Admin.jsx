@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Users, Server, Plus, Trash2, Download, Terminal } from 'lucide-react';
 import Layout from '../components/Layout';
 
-export default function Admin({ token }) {
+export default function Admin({ token, user }) {
   const [users, setUsers] = useState([]);
   const [bots, setBots] = useState([]);
   const [showUserModal, setShowUserModal] = useState(false);
