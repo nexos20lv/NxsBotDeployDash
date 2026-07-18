@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Server, Activity, Terminal, Download } from 'lucide-react';
+import { Server, Terminal } from 'lucide-react';
+import Layout from '../components/Layout';
 
 export default function Dashboard({ token, user }) {
   const [bots, setBots] = useState([]);
@@ -25,13 +26,8 @@ export default function Dashboard({ token, user }) {
 
 
   return (
-    <div className="mt-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2>Your Bots</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Manage your hosted Discord applications</p>
-        </div>
-      </div>
+    <Layout user={user} topbarContent={{ left: <h2 style={{margin:0}}>Your Bots</h2> }}>
+      <div className="mt-4">
 
       <div className="grid grid-cols-3 gap-6">
         {bots.map(bot => (
@@ -64,7 +60,6 @@ export default function Dashboard({ token, user }) {
           </div>
         )}
       </div>
-
-    </div>
+    </Layout>
   );
 }

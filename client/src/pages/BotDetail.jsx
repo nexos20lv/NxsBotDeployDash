@@ -2,8 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Play, Square, RefreshCw, ArrowLeft, Terminal as TermIcon, Folder, Key, Settings, Save, FileText, Trash2 } from 'lucide-react';
 import Editor from '@monaco-editor/react';
+import Layout from '../components/Layout';
 
-export default function BotDetail({ token }) {
+export default function BotDetail({ token, user }) {
   const { id } = useParams();
   const [bot, setBot] = useState(null);
   const [logs, setLogs] = useState({ out: '', err: '' });
@@ -137,64 +138,51 @@ export default function BotDetail({ token }) {
   if (!bot) return <div className="p-8">Loading...</div>;
 
   return (
-    <div className="mt-8">
-      <Link to="/" style={{ textDecoration: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-        <ArrowLeft size={20} /> Back to Dashboard
-      </Link>
-      
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="flex items-center gap-4">
+    <Layout 
+      user={user}
+      sidebarType="bot"
+      botId={bot.id}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      topbarContent={{
+        left: (
+          <h2 className="flex items-center gap-4" style={{margin:0}}>
             {bot.name} 
             <span className={`badge ${bot.status === 'online' ? 'badge-online' : 'badge-offline'}`} style={{ fontSize: '0.6em' }}>
               {bot.status.toUpperCase()}
             </span>
           </h2>
-          {bot.status === 'online' && (
-            <div className="flex gap-4 mt-2" style={{ fontSize: '0.85rem' }}>
-              <div className="flex items-center gap-2">
-                <span style={{ color: 'var(--text-muted)' }}>RAM:</span>
-                <div style={{ width: '100px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${Math.min((metrics.memory / 1024) * 100, 100)}%`, height: '100%', background: 'var(--accent)' }}></div>
+        ),
+        right: (
+          <div className="flex items-center gap-4">
+            {bot.status === 'online' && (
+              <div className="flex gap-4 mr-4" style={{ fontSize: '0.85rem' }}>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: 'var(--text-muted)' }}>RAM:</span>
+                  <div style={{ width: '80px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.min((metrics.memory / 1024) * 100, 100)}%`, height: '100%', background: 'var(--accent)' }}></div>
+                  </div>
+                  <span>{metrics.memory} MB</span>
                 </div>
-                <span>{metrics.memory} MB</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span style={{ color: 'var(--text-muted)' }}>CPU:</span>
-                <div style={{ width: '100px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
-                  <div style={{ width: `${metrics.cpu}%`, height: '100%', background: '#3498db' }}></div>
+                <div className="flex items-center gap-2">
+                  <span style={{ color: 'var(--text-muted)' }}>CPU:</span>
+                  <div style={{ width: '80px', height: '6px', background: 'rgba(255,255,255,0.1)', borderRadius: '3px', overflow: 'hidden' }}>
+                    <div style={{ width: `${metrics.cpu}%`, height: '100%', background: '#3498db' }}></div>
+                  </div>
+                  <span>{metrics.cpu}%</span>
                 </div>
-                <span>{metrics.cpu}%</span>
               </div>
-            </div>
-          )}
-        </div>
-        <div className="flex gap-4">
-          {bot.status === 'offline' ? (
-            <button className="clay-btn btn-success" onClick={() => handleAction('start')}><Play size={18} /> Start</button>
-          ) : (
-            <button className="clay-btn btn-danger" onClick={() => handleAction('stop')}><Square size={18} /> Stop</button>
-          )}
-          <button className="clay-btn" onClick={() => handleAction('restart')} disabled={bot.status === 'offline'}><RefreshCw size={18} /> Restart</button>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-4 mb-6" style={{ borderBottom: '2px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
-        <button className={`clay-btn ${activeTab === 'console' ? '' : 'btn-danger'}`} style={{ background: activeTab === 'console' ? 'var(--accent)' : 'transparent', boxShadow: activeTab === 'console' ? '' : 'none', color: activeTab === 'console' ? '#fff' : 'var(--text-muted)' }} onClick={() => setActiveTab('console')}>
-          <TermIcon size={18} /> Console
-        </button>
-        <button className={`clay-btn ${activeTab === 'files' ? '' : 'btn-danger'}`} style={{ background: activeTab === 'files' ? 'var(--accent)' : 'transparent', boxShadow: activeTab === 'files' ? '' : 'none', color: activeTab === 'files' ? '#fff' : 'var(--text-muted)' }} onClick={() => setActiveTab('files')}>
-          <Folder size={18} /> Files
-        </button>
-        <button className={`clay-btn ${activeTab === 'env' ? '' : 'btn-danger'}`} style={{ background: activeTab === 'env' ? 'var(--accent)' : 'transparent', boxShadow: activeTab === 'env' ? '' : 'none', color: activeTab === 'env' ? '#fff' : 'var(--text-muted)' }} onClick={() => setActiveTab('env')}>
-          <Key size={18} /> Environment
-        </button>
-        <button className={`clay-btn ${activeTab === 'settings' ? '' : 'btn-danger'}`} style={{ background: activeTab === 'settings' ? 'var(--accent)' : 'transparent', boxShadow: activeTab === 'settings' ? '' : 'none', color: activeTab === 'settings' ? '#fff' : 'var(--text-muted)' }} onClick={() => setActiveTab('settings')}>
-          <Settings size={18} /> Settings & Backups
-        </button>
-      </div>
-
+            )}
+            {bot.status === 'offline' ? (
+              <button className="clay-btn btn-success" style={{padding: '8px 16px', fontSize: '0.9rem'}} onClick={() => handleAction('start')}><Play size={16} /> Start</button>
+            ) : (
+              <button className="clay-btn btn-danger" style={{padding: '8px 16px', fontSize: '0.9rem'}} onClick={() => handleAction('stop')}><Square size={16} /> Stop</button>
+            )}
+            <button className="clay-btn" style={{padding: '8px 16px', fontSize: '0.9rem'}} onClick={() => handleAction('restart')} disabled={bot.status === 'offline'}><RefreshCw size={16} /> Restart</button>
+          </div>
+        )
+      }}
+    >
       {/* TAB CONTENT */}
       {activeTab === 'console' && (
         <div className="clay-card">
@@ -370,6 +358,6 @@ export default function BotDetail({ token }) {
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }

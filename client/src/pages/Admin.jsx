@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Server, Plus, Trash2, ArrowLeft, Download, Terminal } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Users, Server, Plus, Trash2, Download, Terminal } from 'lucide-react';
+import Layout from '../components/Layout';
 
 export default function Admin({ token }) {
   const [users, setUsers] = useState([]);
@@ -100,20 +101,18 @@ export default function Admin({ token }) {
   };
 
   return (
-    <div className="mt-8">
-      <Link to="/" style={{ textDecoration: 'none', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>
-        <ArrowLeft size={20} /> Back to Dashboard
-      </Link>
-
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h2>Admin Panel</h2>
-          <p style={{ color: 'var(--text-muted)' }}>Manage clients and allocate hostings.</p>
-        </div>
-        <button className="clay-btn btn-danger flex items-center gap-2" onClick={handleUpdatePanel}>
-          <Download size={20} /> Update Panel
-        </button>
-      </div>
+    <Layout 
+      user={user} 
+      topbarContent={{ 
+        left: <h2 style={{margin:0}}>Admin Panel</h2>,
+        right: (
+          <button className="clay-btn btn-danger flex items-center gap-2" onClick={handleUpdatePanel}>
+            <Download size={20} /> Update Panel
+          </button>
+        )
+      }}
+    >
+      <div className="mt-4">
 
       <div className="grid grid-cols-2 gap-8">
         {/* Users Section */}
@@ -234,6 +233,6 @@ export default function Admin({ token }) {
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }
