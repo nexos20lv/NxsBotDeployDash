@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Play, Square, RefreshCw, ArrowLeft, Terminal as TermIcon, Folder, Key, Settings, Save, FileText, Trash2, Upload, Server, Network } from 'lucide-react';
+import { Play, Square, RefreshCw, ArrowLeft, Terminal as TermIcon, Folder, Key, Settings, Save, FileText, Trash2, Upload, Server, Network, FolderPlus, FilePlus, Archive, Plus } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import Layout from '../components/Layout';
 
@@ -20,6 +20,7 @@ export default function BotDetail({ token, user }) {
   
   // Env State
   const [envContent, setEnvContent] = useState('');
+  const [settingsTab, setSettingsTab] = useState('ftp');
 
   const fetchBot = async () => {
     try {
@@ -199,36 +200,85 @@ export default function BotDetail({ token, user }) {
           <div className="clay-card" style={{ height: '600px', overflowY: 'auto' }}>
             <div className="flex justify-between items-center mb-4">
               <h3 style={{ margin: 0 }}>File Explorer</h3>
-              <label className="clay-btn btn-success" style={{ cursor: 'pointer', padding: '6px 12px', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Upload size={14} /> Upload File
-                <input 
-                  type="file" 
-                  style={{ display: 'none' }} 
-                  onChange={async (e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const formData = new FormData();
-                    formData.append('file', file);
-                    formData.append('path', currentPath);
-                    try {
-                      const res = await fetch(`/api/bots/${bot.id}/fs/upload`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${token}` },
-                        body: formData
-                      });
-                      if (res.ok) {
+              <div className="flex gap-2">
+                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New File" onClick={async () => {
+                  const name = prompt("Enter file name:");
+                  if (name) {
+                    await fetch(`/api/bots/${bot.id}/fs/create-file`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
+                    fetchFiles(currentPath);
+                  }
+                }}><FilePlus size={16} /></button>
+                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New Folder" onClick={async () => {
+                  const name = prompt("Enter folder name:");
+                  if (name) {
+                    await fetch(`/api/bots/${bot.id}/fs/create-folder`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
+                    fetchFiles(currentPath);
+                  }
+                }}><FolderPlus size={16} /></button>
+                
+                <div className="dropdown" style={{ position: 'relative', display: 'inline-block' }}>
+                  <button className="clay-btn btn-success flex items-center gap-2" style={{ padding: '6px 12px', fontSize: '0.85rem' }} onClick={(e) => {
+                    const menu = e.currentTarget.nextElementSibling;
+                    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+                  }}>
+                    <Plus size={14} /> Upload
+                  </button>
+                  <div style={{ display: 'none', position: 'absolute', top: '100%', right: 0, marginTop: '8px', background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', zIndex: 100, minWidth: '150px', overflow: 'hidden' }}>
+                    <label className="flex items-center gap-2 p-3 hover:bg-white/5 cursor-pointer text-sm" style={{ transition: '0.2s' }}>
+                      <Upload size={14} /> Upload File
+                      <input type="file" style={{ display: 'none' }} onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('path', currentPath);
+                        await fetch(`/api/bots/${bot.id}/fs/upload`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
                         fetchFiles(currentPath);
-                      } else {
-                        const data = await res.json();
-                        alert("Upload failed: " + data.error);
-                      }
-                    } catch(err) {
-                      alert("Upload failed");
-                    }
-                    e.target.value = null;
-                  }} 
-                />
-              </label>
+                        e.target.parentNode.parentNode.style.display = 'none';
+                        e.target.value = null;
+                      }} />
+                    </label>
+                    <label className="flex items-center gap-2 p-3 hover:bg-white/5 cursor-pointer text-sm" style={{ transition: '0.2s', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Folder size={14} /> Upload Folder
+                      <input type="file" webkitdirectory="" directory="" style={{ display: 'none' }} onChange={async (e) => {
+                        const files = Array.from(e.target.files);
+                        if (files.length === 0) return;
+                        const formData = new FormData();
+                        const paths = [];
+                        files.forEach(f => {
+                          formData.append('files', f);
+                          paths.push(f.webkitRelativePath);
+                        });
+                        formData.append('path', currentPath);
+                        formData.append('paths', JSON.stringify(paths));
+                        await fetch(`/api/bots/${bot.id}/fs/upload-folder`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                        fetchFiles(currentPath);
+                        e.target.parentNode.parentNode.style.display = 'none';
+                        e.target.value = null;
+                      }} />
+                    </label>
+                    <label className="flex items-center gap-2 p-3 hover:bg-white/5 cursor-pointer text-sm" style={{ transition: '0.2s', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                      <Archive size={14} /> Upload & Unzip
+                      <input type="file" accept=".zip" style={{ display: 'none' }} onChange={async (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const formData = new FormData();
+                        formData.append('file', file);
+                        formData.append('path', currentPath);
+                        try {
+                          const res = await fetch(`/api/bots/${bot.id}/fs/unzip`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
+                          const data = await res.json();
+                          if (res.ok) alert("ZIP Extracted successfully!");
+                          else alert("Error: " + data.error);
+                        } catch(err) { alert("Upload failed"); }
+                        fetchFiles(currentPath);
+                        e.target.parentNode.parentNode.style.display = 'none';
+                        e.target.value = null;
+                      }} />
+                    </label>
+                  </div>
+                </div>
+              </div>
             </div>
             {currentPath !== '' && (
               <div 
@@ -306,131 +356,219 @@ export default function BotDetail({ token, user }) {
       )}
 
       {activeTab === 'settings' && (
-        <div className="clay-card p-8">
-          <h3 className="mb-6 text-xl">Settings</h3>
-          
-          <div className="flex-col gap-6 flex">
-            {/* FTP Connection Details */}
-            <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="flex items-center gap-3 mb-4">
-                <div style={{ background: 'rgba(52, 152, 219, 0.2)', padding: '10px', borderRadius: '10px' }}>
-                  <Network size={24} color="#3498db" />
+        <div className="clay-card flex h-[600px] p-0 overflow-hidden">
+          {/* Settings Sidebar */}
+          <div className="w-64 border-r border-white/5 p-4 flex flex-col gap-2 bg-black/10">
+            <h3 className="mb-4 mt-2 px-2 text-xl font-bold">Settings</h3>
+            <button 
+              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'ftp' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              onClick={() => setSettingsTab('ftp')}
+            ><Network size={18} /> FTP Credentials</button>
+            <button 
+              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'github' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              onClick={() => setSettingsTab('github')}
+            ><RefreshCw size={18} /> GitHub Deploy</button>
+            <button 
+              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'dependencies' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              onClick={() => setSettingsTab('dependencies')}
+            ><Server size={18} /> Dependencies</button>
+            <button 
+              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'backups' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              onClick={() => setSettingsTab('backups')}
+            ><Archive size={18} /> Backups</button>
+            <button 
+              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'info' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              onClick={() => setSettingsTab('info')}
+            ><Settings size={18} /> Configuration</button>
+          </div>
+
+          {/* Settings Content */}
+          <div className="flex-1 p-8 overflow-y-auto">
+            {settingsTab === 'ftp' && (
+              <div className="h-full flex flex-col">
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-4 rounded-xl bg-blue-500/20">
+                    <Network size={32} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold m-0">FTP Details</h2>
+                    <p className="text-gray-400 m-0 mt-1">Connect via FileZilla or WinSCP to manage files remotely.</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem' }}>FTP Connection Details</h4>
-                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>Connect via FileZilla or WinSCP to manage your bot's files.</p>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
+                    <p className="text-gray-400 mb-2">Host IP</p>
+                    <code className="text-xl text-blue-400">{window.location.hostname}</code>
+                  </div>
+                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
+                    <p className="text-gray-400 mb-2">Port</p>
+                    <code className="text-xl text-blue-400">2121</code>
+                  </div>
+                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
+                    <p className="text-gray-400 mb-2">Username</p>
+                    <code className="text-xl text-blue-400">bot_{bot.id}</code>
+                  </div>
+                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
+                    <p className="text-gray-400 mb-2">Password</p>
+                    <code 
+                      className="text-xl text-blue-400 cursor-pointer select-all"
+                      onClick={(e) => {
+                        if (e.target.innerText === '••••••••••') {
+                          e.target.innerText = bot.ftp_password || 'Not generated yet (Restart panel)';
+                        } else {
+                          e.target.innerText = '••••••••••';
+                        }
+                      }}
+                    >
+                      ••••••••••
+                    </code>
+                    <p className="text-xs text-gray-500 mt-2">(Click to reveal)</p>
+                  </div>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4 mt-4" style={{ fontSize: '0.9rem' }}>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Host</p>
-                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>{window.location.hostname}</code>
+            )}
+
+            {settingsTab === 'github' && (
+              <div>
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-4 rounded-xl bg-purple-500/20">
+                    <RefreshCw size={32} className="text-purple-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold m-0">Auto-Deploy</h2>
+                    <p className="text-gray-400 m-0 mt-1">Automatically pull code from GitHub when you push.</p>
+                  </div>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Port</p>
-                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>2121</code>
+                
+                <div className="bg-black/20 p-6 rounded-xl border border-white/5">
+                  <h4 className="mb-2 font-bold text-lg">Webhook URL</h4>
+                  <p className="text-gray-400 text-sm mb-4">Paste this URL into your GitHub repository (Settings {'>'} Webhooks {'>'} Add webhook).</p>
+                  <div className="flex gap-4">
+                    <input 
+                      className="clay-input flex-1 text-lg py-3" 
+                      readOnly 
+                      value={`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`} 
+                    />
+                    <button className="clay-btn px-8" onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`)}>
+                      Copy
+                    </button>
+                  </div>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Username</p>
-                  <code style={{ fontSize: '1rem', color: 'var(--accent)' }}>bot_{bot.id}</code>
+              </div>
+            )}
+
+            {settingsTab === 'dependencies' && (
+              <div>
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-4 rounded-xl bg-green-500/20">
+                    <Server size={32} className="text-green-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold m-0">Dependencies</h2>
+                    <p className="text-gray-400 m-0 mt-1">Manage project packages automatically.</p>
+                  </div>
                 </div>
-                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '12px', borderRadius: '8px' }}>
-                  <p style={{ margin: 0, color: 'var(--text-muted)' }}>Password</p>
-                  <code 
-                    style={{ fontSize: '1rem', color: 'var(--accent)', cursor: 'pointer' }}
-                    onClick={(e) => {
-                      if (e.target.innerText === '••••••••••') {
-                        e.target.innerText = bot.ftp_password || 'Not generated yet (Restart panel)';
-                      } else {
-                        e.target.innerText = '••••••••••';
+
+                <div className="bg-black/20 p-8 rounded-xl border border-white/5 text-center">
+                  <h4 className="text-xl font-bold mb-4">Run Installer</h4>
+                  <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                    This will run <code>npm install</code> or <code>pip install -r requirements.txt</code> depending on your bot type. This process might take a few minutes.
+                  </p>
+                  <button 
+                    className="clay-btn btn-success py-3 px-8 text-lg" 
+                    onClick={async (e) => {
+                      e.target.disabled = true;
+                      e.target.innerText = 'Installing...';
+                      try {
+                        const res = await fetch(`/api/bots/${bot.id}/install`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+                        const data = await res.json();
+                        alert(data.message || data.error);
+                      } finally {
+                        e.target.disabled = false;
+                        e.target.innerText = 'Install Dependencies';
                       }
                     }}
                   >
-                    ••••••••••
-                  </code>
-                  <span style={{ marginLeft: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>(Click to reveal)</span>
+                    Install Dependencies
+                  </button>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* GitHub Auto-Deploy */}
-            <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-              <h4 className="flex items-center gap-2 mb-2" style={{ fontSize: '1.1rem' }}><RefreshCw size={20} color="var(--accent)" /> GitHub Auto-Deploy Webhook</h4>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Paste this URL into your GitHub repository settings (Settings {'>'} Webhooks {'>'} Add webhook) to automatically deploy code when you push.
-              </p>
-              <div className="mt-4 flex gap-2">
-                <input 
-                  className="clay-input flex-1" 
-                  readOnly 
-                  value={`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`} 
-                />
-                <button className="clay-btn" onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`)}>
-                  Copy
-                </button>
-              </div>
-            </div>
+            {settingsTab === 'backups' && (
+              <div>
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-4 rounded-xl bg-orange-500/20">
+                    <Archive size={32} className="text-orange-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold m-0">Backups</h2>
+                    <p className="text-gray-400 m-0 mt-1">Download and secure your files.</p>
+                  </div>
+                </div>
 
-            {/* Dependencies & Backups */}
-            <div className="grid grid-cols-2 gap-6">
-              <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h4 className="mb-2" style={{ fontSize: '1.1rem' }}>📦 Dependency Installer</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  Automatically run <code>npm install</code> or <code>pip install -r requirements.txt</code> in your bot's folder.
-                </p>
-                <button 
-                  className="clay-btn btn-success w-full" 
-                  onClick={async (e) => {
-                    e.target.disabled = true;
-                    e.target.innerText = 'Installing...';
-                    try {
-                      const res = await fetch(`/api/bots/${bot.id}/install`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-                      const data = await res.json();
-                      alert(data.message || data.error);
-                    } finally {
-                      e.target.disabled = false;
-                      e.target.innerText = 'Install Dependencies';
-                    }
-                  }}
-                >
-                  Install Dependencies
-                </button>
+                <div className="bg-black/20 p-8 rounded-xl border border-white/5 text-center">
+                  <h4 className="text-xl font-bold mb-4">Download ZIP Backup</h4>
+                  <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                    Generate and download a complete ZIP archive of your bot's directory including all code and assets.
+                  </p>
+                  <button 
+                    className="clay-btn py-3 px-8 text-lg" 
+                    onClick={() => {
+                      const url = `/api/bots/${bot.id}/backups/download`;
+                      fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+                        .then(res => res.blob())
+                        .then(blob => {
+                          const a = document.createElement('a');
+                          a.href = window.URL.createObjectURL(blob);
+                          a.download = `backup_${bot.name}.zip`;
+                          a.click();
+                        });
+                    }}
+                  >
+                    Download ZIP
+                  </button>
+                </div>
               </div>
+            )}
 
-              <div className="p-6" style={{ background: 'rgba(0,0,0,0.15)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                <h4 className="mb-2" style={{ fontSize: '1.1rem' }}>🗄️ Create Backup</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-                  Download a complete ZIP archive of your bot's directory including all code and assets.
-                </p>
-                <button 
-                  className="clay-btn w-full" 
-                  onClick={() => {
-                    const url = `/api/bots/${bot.id}/backups/download`;
-                    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
-                      .then(res => res.blob())
-                      .then(blob => {
-                        const a = document.createElement('a');
-                        a.href = window.URL.createObjectURL(blob);
-                        a.download = `backup_${bot.name}.zip`;
-                        a.click();
-                      });
-                  }}
-                >
-                  Download ZIP
-                </button>
-              </div>
-            </div>
+            {settingsTab === 'info' && (
+              <div>
+                <div className="flex items-center gap-4 mb-8">
+                  <div className="p-4 rounded-xl bg-gray-500/20">
+                    <Settings size={32} className="text-gray-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold m-0">Configuration</h2>
+                    <p className="text-gray-400 m-0 mt-1">Technical details about this instance.</p>
+                  </div>
+                </div>
 
-            {/* Bot Info */}
-            <div className="p-6 mt-4" style={{ background: 'rgba(0,0,0,0.1)', borderRadius: '12px' }}>
-              <h4 style={{ fontSize: '1rem', marginBottom: '8px' }}>Bot Information</h4>
-              <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                <p>Type: <span style={{ color: 'var(--accent)' }}>{bot.type.toUpperCase()}</span></p>
-                <p>Start Cmd: <code>{bot.start_command}</code></p>
-                <p>Main File: <code>{bot.main_file}</code></p>
-                <p>Directory: <code>{bot.directory}</code></p>
+                <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
+                  <div className="grid grid-cols-3 border-b border-white/5">
+                    <div className="p-4 text-gray-400 bg-white/5">Bot ID</div>
+                    <div className="p-4 col-span-2 text-white font-mono">{bot.id}</div>
+                  </div>
+                  <div className="grid grid-cols-3 border-b border-white/5">
+                    <div className="p-4 text-gray-400 bg-white/5">Type</div>
+                    <div className="p-4 col-span-2 text-blue-400 font-bold">{bot.type.toUpperCase()}</div>
+                  </div>
+                  <div className="grid grid-cols-3 border-b border-white/5">
+                    <div className="p-4 text-gray-400 bg-white/5">Start Command</div>
+                    <div className="p-4 col-span-2 text-green-400 font-mono">{bot.start_command}</div>
+                  </div>
+                  <div className="grid grid-cols-3 border-b border-white/5">
+                    <div className="p-4 text-gray-400 bg-white/5">Main File</div>
+                    <div className="p-4 col-span-2 text-yellow-400 font-mono">{bot.main_file}</div>
+                  </div>
+                  <div className="grid grid-cols-3">
+                    <div className="p-4 text-gray-400 bg-white/5">Root Directory</div>
+                    <div className="p-4 col-span-2 text-gray-300 font-mono text-sm">{bot.directory}</div>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
             
           </div>
         </div>

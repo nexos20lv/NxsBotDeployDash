@@ -5,6 +5,8 @@ const path = require('path');
 const crypto = require('crypto');
 const db = require('../db');
 const multer = require('multer');
+const yauzl = require('yauzl');
+const fse = require('fs-extra');
 const { authenticateToken } = require('./auth');
 const pm2Manager = require('../pm2-manager');
 
@@ -182,7 +184,7 @@ router.get('/:id/fs/list', authenticateToken, (req, res) => {
 // Setup Multer for file uploads (storing temporarily in memory or directly to destination)
 const upload = multer({ dest: '/tmp/' });
 
-// Upload a file to the bot's directory
+// Upload a single file to the bot's directory
 router.post('/:id/fs/upload', authenticateToken, upload.single('file'), (req, res) => {
   const { id } = req.params;
   const targetPath = req.body.path || '';
@@ -196,27 +198,170 @@ router.post('/:id/fs/upload', authenticateToken, upload.single('file'), (req, re
       return res.status(403).json({ error: "Access denied" });
     }
 
-    const destDir = path.join(bot.directory, targetPath);
-    
-    // Prevent directory traversal
-    if (!destDir.startsWith(bot.directory)) {
-      fs.unlinkSync(req.file.path);
-      return res.status(403).json({ error: "Invalid path" });
-    }
-
-    if (!fs.existsSync(destDir)) {
-      fs.mkdirSync(destDir, { recursive: true });
-    }
-
-    const destFile = path.join(destDir, req.file.originalname);
-    
-    fs.rename(req.file.path, destFile, (err) => {
-      if (err) {
-        fs.unlinkSync(req.file.path);
-        return res.status(500).json({ error: "Failed to save file." });
-      }
+    try {
+      const destDir = resolveSafePath(bot.directory, targetPath);
+      if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+      
+      const destFile = path.join(destDir, req.file.originalname);
+      fs.renameSync(req.file.path, destFile);
       res.json({ message: "File uploaded successfully." });
-    });
+    } catch (e) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+// Upload multiple files (e.g. for folders)
+router.post('/:id/fs/upload-folder', authenticateToken, upload.array('files'), (req, res) => {
+  const { id } = req.params;
+  const targetPath = req.body.path || '';
+  // paths is a JSON string array of relative paths corresponding to the files array
+  const relativePaths = req.body.paths ? JSON.parse(req.body.paths) : [];
+
+  if (!req.files || req.files.length === 0) return res.status(400).json({ error: "No files uploaded." });
+
+  db.get("SELECT * FROM bots WHERE id = ?", [id], (err, bot) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (!bot) return res.status(404).json({ error: "Bot not found" });
+    if (bot.owner_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: "Access denied" });
+
+    try {
+      req.files.forEach((file, index) => {
+        const relPath = relativePaths[index] || file.originalname;
+        const destFile = resolveSafePath(bot.directory, path.join(targetPath, relPath));
+        const destDir = path.dirname(destFile);
+        
+        if (!fs.existsSync(destDir)) fs.mkdirSync(destDir, { recursive: true });
+        fs.renameSync(file.path, destFile);
+      });
+      res.json({ message: "Folder uploaded successfully." });
+    } catch (e) {
+      req.files.forEach(f => { if(fs.existsSync(f.path)) fs.unlinkSync(f.path); });
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+// Create File
+router.post('/:id/fs/create-file', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { path: targetPath, name } = req.body;
+  if (!name) return res.status(400).json({ error: "File name required" });
+
+  db.get("SELECT * FROM bots WHERE id = ?", [id], (err, bot) => {
+    if (err || !bot) return res.status(404).json({ error: "Bot not found" });
+    if (bot.owner_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: "Access denied" });
+
+    try {
+      const destFile = resolveSafePath(bot.directory, path.join(targetPath || '', name));
+      if (fs.existsSync(destFile)) return res.status(400).json({ error: "File already exists" });
+      fs.writeFileSync(destFile, '');
+      res.json({ message: "File created" });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+// Create Folder
+router.post('/:id/fs/create-folder', authenticateToken, (req, res) => {
+  const { id } = req.params;
+  const { path: targetPath, name } = req.body;
+  if (!name) return res.status(400).json({ error: "Folder name required" });
+
+  db.get("SELECT * FROM bots WHERE id = ?", [id], (err, bot) => {
+    if (err || !bot) return res.status(404).json({ error: "Bot not found" });
+    if (bot.owner_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: "Access denied" });
+
+    try {
+      const destFolder = resolveSafePath(bot.directory, path.join(targetPath || '', name));
+      if (fs.existsSync(destFolder)) return res.status(400).json({ error: "Folder already exists" });
+      fs.mkdirSync(destFolder, { recursive: true });
+      res.json({ message: "Folder created" });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+// Upload and Unzip (with zip bomb protection)
+router.post('/:id/fs/unzip', authenticateToken, upload.single('file'), (req, res) => {
+  const { id } = req.params;
+  const targetPath = req.body.path || '';
+
+  if (!req.file || !req.file.originalname.endsWith('.zip')) {
+    if (req.file) fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: "Please upload a valid .zip file." });
+  }
+
+  db.get("SELECT * FROM bots WHERE id = ?", [id], (err, bot) => {
+    if (err || !bot) return res.status(404).json({ error: "Bot not found" });
+    if (bot.owner_id !== req.user.id && req.user.role !== 'admin') return res.status(403).json({ error: "Access denied" });
+
+    try {
+      const destDir = resolveSafePath(bot.directory, targetPath);
+      let totalSize = 0;
+      let fileCount = 0;
+      const MAX_SIZE = 500 * 1024 * 1024; // 500 MB
+      const MAX_FILES = 10000;
+
+      yauzl.open(req.file.path, { lazyEntries: true }, (err, zipfile) => {
+        if (err) {
+          fs.unlinkSync(req.file.path);
+          return res.status(400).json({ error: "Invalid ZIP file." });
+        }
+
+        zipfile.readEntry();
+        zipfile.on("entry", (entry) => {
+          fileCount++;
+          if (fileCount > MAX_FILES) {
+            zipfile.close();
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({ error: "ZIP file contains too many files (max 10,000)." });
+          }
+
+          if (/\/$/.test(entry.fileName)) {
+            // Directory entry
+            const targetFolder = resolveSafePath(destDir, entry.fileName);
+            fse.ensureDirSync(targetFolder);
+            zipfile.readEntry();
+          } else {
+            // File entry
+            totalSize += entry.uncompressedSize;
+            if (totalSize > MAX_SIZE) {
+              zipfile.close();
+              fs.unlinkSync(req.file.path);
+              return res.status(400).json({ error: "ZIP extracted size exceeds limit (500MB)." });
+            }
+
+            zipfile.openReadStream(entry, (err, readStream) => {
+              if (err) { zipfile.close(); return; }
+              const targetFile = resolveSafePath(destDir, entry.fileName);
+              fse.ensureDirSync(path.dirname(targetFile));
+              const writeStream = fs.createWriteStream(targetFile);
+              readStream.pipe(writeStream);
+              writeStream.on("close", () => {
+                zipfile.readEntry();
+              });
+            });
+          }
+        });
+
+        zipfile.on("end", () => {
+          fs.unlinkSync(req.file.path);
+          res.json({ message: "ZIP extracted successfully." });
+        });
+
+        zipfile.on("error", (err) => {
+          if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+        });
+      });
+
+    } catch (e) {
+      if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);
+      res.status(400).json({ error: e.message });
+    }
   });
 });
 
