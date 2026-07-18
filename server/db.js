@@ -31,12 +31,15 @@ db.serialize(() => {
   
   // Create default admin if not exists
   const bcrypt = require('bcrypt');
-  db.get("SELECT id FROM users WHERE username = 'admin'", (err, row) => {
+  const adminUser = process.env.ADMIN_USERNAME || 'admin';
+  const adminPass = process.env.ADMIN_PASSWORD || 'admin';
+
+  db.get("SELECT id FROM users WHERE username = ?", [adminUser], (err, row) => {
     if (!row) {
-      bcrypt.hash('admin', 10, (err, hash) => {
+      bcrypt.hash(adminPass, 10, (err, hash) => {
         if (err) return console.error(err);
-        db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ['admin', hash, 'admin']);
-        console.log("Default admin created (admin/admin)");
+        db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [adminUser, hash, 'admin']);
+        console.log(`Default admin created (${adminUser})`);
       });
     }
   });

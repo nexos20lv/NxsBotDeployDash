@@ -8,6 +8,16 @@ INSTALL_DIR="/opt/NxsBotDeployDash"
 
 echo "Starting deployment of NxsBotDeployDash..."
 
+# Prompt for Admin Credentials
+echo ""
+echo "=== Admin Account Setup ==="
+read -p "Enter Admin Username [admin]: " ADMIN_USER < /dev/tty
+ADMIN_USER=${ADMIN_USER:-admin}
+read -p "Enter Admin Password [admin]: " ADMIN_PASS < /dev/tty
+ADMIN_PASS=${ADMIN_PASS:-admin}
+echo "==========================="
+echo ""
+
 # 1. Update and install prerequisites
 sudo apt update && sudo apt install -y curl build-essential python3 sqlite3 git
 
@@ -36,6 +46,11 @@ sudo chown -R $USER:$USER "$INSTALL_DIR"
 echo "Setting up backend..."
 cd server
 npm install
+
+# Write .env file with admin credentials
+echo "ADMIN_USERNAME=$ADMIN_USER" > .env
+echo "ADMIN_PASSWORD=$ADMIN_PASS" >> .env
+
 cd ..
 
 # 6. Setup and Build Frontend
@@ -53,4 +68,6 @@ pm2 save
 pm2 startup
 
 echo "Deployment complete! Backend is running on PM2."
-echo "Default credentials: admin / admin"
+echo "Your admin credentials are:"
+echo "Username: $ADMIN_USER"
+echo "Password: $ADMIN_PASS"
