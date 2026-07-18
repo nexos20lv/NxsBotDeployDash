@@ -30,8 +30,17 @@ router.get('/', authenticateToken, (req, res) => {
 
 // Create a new bot
 router.post('/', authenticateToken, (req, res) => {
-  const { name, type, start_command, main_file } = req.body;
-  const owner_id = req.user.id;
+  const { name, type, start_command, main_file, assigned_owner_id } = req.body;
+  
+  // If admin, they can specify the owner. Otherwise, it's the current user.
+  let owner_id = req.user.id;
+  if (req.user.role === 'admin' && assigned_owner_id) {
+      owner_id = assigned_owner_id;
+  } else if (req.user.role !== 'admin') {
+      // If we want only admins to create bots, we should block users here.
+      // But let's allow users to create bots if no admin strict mode is set, or block them if the user specifically wants "admin panel to create hostings".
+      return res.status(403).json({ error: "Only admins can create new bot hostings." });
+  }
 
   db.run("INSERT INTO bots (name, type, start_command, main_file, owner_id, directory, status) VALUES (?, ?, ?, ?, ?, ?, ?)", 
     [name, type, start_command, main_file, owner_id, '', 'offline'], 

@@ -4,8 +4,6 @@ import { Plus, Server, Activity, Terminal, Download } from 'lucide-react';
 
 export default function Dashboard({ token, user }) {
   const [bots, setBots] = useState([]);
-  const [showModal, setShowModal] = useState(false);
-  const [newBot, setNewBot] = useState({ name: '', type: 'nodejs', main_file: 'index.js', start_command: 'node index.js' });
 
   const fetchBots = async () => {
     try {
@@ -24,27 +22,6 @@ export default function Dashboard({ token, user }) {
   useEffect(() => {
     fetchBots();
   }, []);
-
-  const handleCreateBot = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch('/api/bots', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(newBot)
-      });
-      if (res.ok) {
-        setShowModal(false);
-        fetchBots();
-        setNewBot({ name: '', type: 'nodejs', main_file: 'index.js', start_command: 'node index.js' });
-      }
-    } catch(e) {
-      console.error(e);
-    }
-  };
 
   const handleUpdate = async () => {
     if(!confirm("Are you sure you want to update the panel? It will pull from GitHub and restart the server.")) return;
@@ -74,9 +51,6 @@ export default function Dashboard({ token, user }) {
               <Download size={20} /> Update Panel
             </button>
           )}
-          <button className="clay-btn" onClick={() => setShowModal(true)}>
-            <Plus size={20} /> Create Bot
-          </button>
         </div>
       </div>
 
@@ -112,46 +86,6 @@ export default function Dashboard({ token, user }) {
         )}
       </div>
 
-      {showModal && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.6)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center',
-          zIndex: 1000
-        }}>
-          <div className="clay-card" style={{ width: '400px' }}>
-            <h3 className="mb-4">Create New Bot</h3>
-            <form onSubmit={handleCreateBot} className="flex-col gap-4">
-              <input 
-                className="clay-input" 
-                placeholder="Bot Name" 
-                value={newBot.name}
-                onChange={e => setNewBot({...newBot, name: e.target.value})}
-                required
-              />
-              <select 
-                className="clay-input"
-                value={newBot.type}
-                onChange={e => setNewBot({...newBot, type: e.target.value})}
-              >
-                <option value="nodejs">Node.js</option>
-                <option value="python">Python</option>
-              </select>
-              <input 
-                className="clay-input" 
-                placeholder="Main File (e.g., index.js)" 
-                value={newBot.main_file}
-                onChange={e => setNewBot({...newBot, main_file: e.target.value})}
-                required
-              />
-              <div className="flex gap-4 mt-4">
-                <button type="button" className="clay-btn btn-danger w-full" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="clay-btn btn-success w-full">Create</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -23,7 +23,7 @@ app.use('/api/bots', botsRoutes);
 
 // Serve static frontend
 app.use(express.static(path.join(__dirname, '../client/dist')));
-app.get('*', (req, res) => {
+app.use((req, res, next) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));
 });
 
