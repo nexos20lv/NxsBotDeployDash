@@ -233,6 +233,7 @@ export default function Admin({ token }) {
           </div>
         </div>
       )}
+      </div>
     </Layout>
   );
 }

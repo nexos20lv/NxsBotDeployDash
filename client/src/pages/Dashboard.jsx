@@ -60,6 +60,7 @@ export default function Dashboard({ token, user }) {
           </div>
         )}
       </div>
+      </div>
     </Layout>
   );
 }
