@@ -18,9 +18,9 @@ export default function BotDetail({ token, user }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [fileContent, setFileContent] = useState('');
   
-  // Env State
   const [envContent, setEnvContent] = useState('');
   const [settingsTab, setSettingsTab] = useState('ftp');
+  const [modalConfig, setModalConfig] = useState(null); // { title, type: 'prompt'|'alert', message, onConfirm }
 
   const fetchBot = async () => {
     try {
@@ -201,19 +201,31 @@ export default function BotDetail({ token, user }) {
             <div className="flex justify-between items-center mb-4">
               <h3 style={{ margin: 0 }}>File Explorer</h3>
               <div className="flex gap-2">
-                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New File" onClick={async () => {
-                  const name = prompt("Enter file name:");
-                  if (name) {
-                    await fetch(`/api/bots/${bot.id}/fs/create-file`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
-                    fetchFiles(currentPath);
-                  }
+                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New File" onClick={() => {
+                  setModalConfig({
+                    title: "New File",
+                    type: "prompt",
+                    message: "Enter file name:",
+                    onConfirm: async (name) => {
+                      if (name) {
+                        await fetch(`/api/bots/${bot.id}/fs/create-file`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
+                        fetchFiles(currentPath);
+                      }
+                    }
+                  });
                 }}><FilePlus size={16} /></button>
-                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New Folder" onClick={async () => {
-                  const name = prompt("Enter folder name:");
-                  if (name) {
-                    await fetch(`/api/bots/${bot.id}/fs/create-folder`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
-                    fetchFiles(currentPath);
-                  }
+                <button className="clay-btn" style={{ padding: '6px 8px' }} title="New Folder" onClick={() => {
+                  setModalConfig({
+                    title: "New Folder",
+                    type: "prompt",
+                    message: "Enter folder name:",
+                    onConfirm: async (name) => {
+                      if (name) {
+                        await fetch(`/api/bots/${bot.id}/fs/create-folder`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ path: currentPath, name }) });
+                        fetchFiles(currentPath);
+                      }
+                    }
+                  });
                 }}><FolderPlus size={16} /></button>
                 
                 <div className="dropdown" style={{ position: 'relative', display: 'inline-block' }}>
@@ -268,9 +280,14 @@ export default function BotDetail({ token, user }) {
                         try {
                           const res = await fetch(`/api/bots/${bot.id}/fs/unzip`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData });
                           const data = await res.json();
-                          if (res.ok) alert("ZIP Extracted successfully!");
-                          else alert("Error: " + data.error);
-                        } catch(err) { alert("Upload failed"); }
+                          if (res.ok) {
+                            setModalConfig({ title: "Success", type: "alert", message: "ZIP Extracted successfully!" });
+                          } else {
+                            setModalConfig({ title: "Error", type: "alert", message: "Error: " + data.error });
+                          }
+                        } catch(err) {
+                          setModalConfig({ title: "Error", type: "alert", message: "Upload failed" });
+                        }
                         fetchFiles(currentPath);
                         e.target.parentNode.parentNode.style.display = 'none';
                         e.target.value = null;
@@ -356,34 +373,34 @@ export default function BotDetail({ token, user }) {
       )}
 
       {activeTab === 'settings' && (
-        <div className="clay-card flex h-[600px] p-0 overflow-hidden">
+        <div className="clay-card flex p-0 overflow-hidden" style={{ height: '600px' }}>
           {/* Settings Sidebar */}
-          <div className="w-64 border-r border-white/5 p-4 flex flex-col gap-2 bg-black/10">
-            <h3 className="mb-4 mt-2 px-2 text-xl font-bold">Settings</h3>
+          <div className="settings-sidebar">
+            <h3 className="mb-4 mt-2 px-2" style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>Settings</h3>
             <button 
-              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'ftp' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              className={`settings-tab-btn ${settingsTab === 'ftp' ? 'active' : ''}`}
               onClick={() => setSettingsTab('ftp')}
             ><Network size={18} /> FTP Credentials</button>
             <button 
-              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'github' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              className={`settings-tab-btn ${settingsTab === 'github' ? 'active' : ''}`}
               onClick={() => setSettingsTab('github')}
             ><RefreshCw size={18} /> GitHub Deploy</button>
             <button 
-              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'dependencies' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              className={`settings-tab-btn ${settingsTab === 'dependencies' ? 'active' : ''}`}
               onClick={() => setSettingsTab('dependencies')}
             ><Server size={18} /> Dependencies</button>
             <button 
-              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'backups' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              className={`settings-tab-btn ${settingsTab === 'backups' ? 'active' : ''}`}
               onClick={() => setSettingsTab('backups')}
             ><Archive size={18} /> Backups</button>
             <button 
-              className={`text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all ${settingsTab === 'info' ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5'}`}
+              className={`settings-tab-btn ${settingsTab === 'info' ? 'active' : ''}`}
               onClick={() => setSettingsTab('info')}
             ><Settings size={18} /> Configuration</button>
           </div>
 
           {/* Settings Content */}
-          <div className="flex-1 p-8 overflow-y-auto">
+          <div className="settings-content">
             {settingsTab === 'ftp' && (
               <div className="h-full flex flex-col">
                 <div className="flex items-center gap-4 mb-8">
@@ -396,23 +413,23 @@ export default function BotDetail({ token, user }) {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
-                    <p className="text-gray-400 mb-2">Host IP</p>
-                    <code className="text-xl text-blue-400">{window.location.hostname}</code>
+                <div className="grid grid-cols-2 gap-6 mt-6">
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>Host IP</p>
+                    <code style={{ fontSize: '1.25rem', color: '#3498db' }}>{window.location.hostname}</code>
                   </div>
-                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
-                    <p className="text-gray-400 mb-2">Port</p>
-                    <code className="text-xl text-blue-400">2121</code>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>Port</p>
+                    <code style={{ fontSize: '1.25rem', color: '#3498db' }}>2121</code>
                   </div>
-                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
-                    <p className="text-gray-400 mb-2">Username</p>
-                    <code className="text-xl text-blue-400">bot_{bot.id}</code>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>Username</p>
+                    <code style={{ fontSize: '1.25rem', color: '#3498db' }}>bot_{bot.id}</code>
                   </div>
-                  <div className="bg-black/20 p-6 rounded-xl border border-white/5">
-                    <p className="text-gray-400 mb-2">Password</p>
+                  <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>Password</p>
                     <code 
-                      className="text-xl text-blue-400 cursor-pointer select-all"
+                      style={{ fontSize: '1.25rem', color: '#3498db', cursor: 'pointer' }}
                       onClick={(e) => {
                         if (e.target.innerText === '••••••••••') {
                           e.target.innerText = bot.ftp_password || 'Not generated yet (Restart panel)';
@@ -441,16 +458,17 @@ export default function BotDetail({ token, user }) {
                   </div>
                 </div>
                 
-                <div className="bg-black/20 p-6 rounded-xl border border-white/5">
-                  <h4 className="mb-2 font-bold text-lg">Webhook URL</h4>
-                  <p className="text-gray-400 text-sm mb-4">Paste this URL into your GitHub repository (Settings {'>'} Webhooks {'>'} Add webhook).</p>
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '24px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', marginTop: '24px' }}>
+                  <h4 style={{ marginBottom: '8px', fontSize: '1.1rem', fontWeight: 'bold' }}>Webhook URL</h4>
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>Paste this URL into your GitHub repository (Settings {'>'} Webhooks {'>'} Add webhook).</p>
                   <div className="flex gap-4">
                     <input 
-                      className="clay-input flex-1 text-lg py-3" 
+                      className="clay-input flex-1" 
+                      style={{ fontSize: '1.1rem', padding: '12px 16px' }}
                       readOnly 
                       value={`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`} 
                     />
-                    <button className="clay-btn px-8" onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`)}>
+                    <button className="clay-btn" style={{ padding: '0 32px' }} onClick={() => navigator.clipboard.writeText(`${window.location.protocol}//${window.location.host}/api/webhooks/github/${bot.id}`)}>
                       Copy
                     </button>
                   </div>
@@ -470,20 +488,21 @@ export default function BotDetail({ token, user }) {
                   </div>
                 </div>
 
-                <div className="bg-black/20 p-8 rounded-xl border border-white/5 text-center">
-                  <h4 className="text-xl font-bold mb-4">Run Installer</h4>
-                  <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '32px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', marginTop: '24px' }}>
+                  <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '16px' }}>Run Installer</h4>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '32px', maxWidth: '400px', margin: '0 auto 32px' }}>
                     This will run <code>npm install</code> or <code>pip install -r requirements.txt</code> depending on your bot type. This process might take a few minutes.
                   </p>
                   <button 
-                    className="clay-btn btn-success py-3 px-8 text-lg" 
+                    className="clay-btn btn-success" 
+                    style={{ padding: '16px 32px', fontSize: '1.1rem', margin: '0 auto' }}
                     onClick={async (e) => {
                       e.target.disabled = true;
                       e.target.innerText = 'Installing...';
                       try {
                         const res = await fetch(`/api/bots/${bot.id}/install`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
                         const data = await res.json();
-                        alert(data.message || data.error);
+                        setModalConfig({ title: "Installer", type: "alert", message: data.message || data.error });
                       } finally {
                         e.target.disabled = false;
                         e.target.innerText = 'Install Dependencies';
@@ -508,13 +527,14 @@ export default function BotDetail({ token, user }) {
                   </div>
                 </div>
 
-                <div className="bg-black/20 p-8 rounded-xl border border-white/5 text-center">
-                  <h4 className="text-xl font-bold mb-4">Download ZIP Backup</h4>
-                  <p className="text-gray-400 mb-8 max-w-md mx-auto">
+                <div style={{ background: 'rgba(0,0,0,0.2)', padding: '32px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', textAlign: 'center', marginTop: '24px' }}>
+                  <h4 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '16px' }}>Download ZIP Backup</h4>
+                  <p style={{ color: 'var(--text-muted)', marginBottom: '32px', maxWidth: '400px', margin: '0 auto 32px' }}>
                     Generate and download a complete ZIP archive of your bot's directory including all code and assets.
                   </p>
                   <button 
-                    className="clay-btn py-3 px-8 text-lg" 
+                    className="clay-btn" 
+                    style={{ padding: '16px 32px', fontSize: '1.1rem', margin: '0 auto' }}
                     onClick={() => {
                       const url = `/api/bots/${bot.id}/backups/download`;
                       fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
@@ -545,31 +565,73 @@ export default function BotDetail({ token, user }) {
                   </div>
                 </div>
 
-                <div className="bg-black/20 rounded-xl border border-white/5 overflow-hidden">
-                  <div className="grid grid-cols-3 border-b border-white/5">
-                    <div className="p-4 text-gray-400 bg-white/5">Bot ID</div>
-                    <div className="p-4 col-span-2 text-white font-mono">{bot.id}</div>
+                <div style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden', marginTop: '24px' }}>
+                  <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)' }}>Bot ID</div>
+                    <div style={{ padding: '16px', gridColumn: 'span 2', color: '#fff', fontFamily: 'monospace' }}>{bot.id}</div>
                   </div>
-                  <div className="grid grid-cols-3 border-b border-white/5">
-                    <div className="p-4 text-gray-400 bg-white/5">Type</div>
-                    <div className="p-4 col-span-2 text-blue-400 font-bold">{bot.type.toUpperCase()}</div>
+                  <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)' }}>Type</div>
+                    <div style={{ padding: '16px', gridColumn: 'span 2', color: '#3498db', fontWeight: 'bold' }}>{bot.type.toUpperCase()}</div>
                   </div>
-                  <div className="grid grid-cols-3 border-b border-white/5">
-                    <div className="p-4 text-gray-400 bg-white/5">Start Command</div>
-                    <div className="p-4 col-span-2 text-green-400 font-mono">{bot.start_command}</div>
+                  <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)' }}>Start Command</div>
+                    <div style={{ padding: '16px', gridColumn: 'span 2', color: '#2ecc71', fontFamily: 'monospace' }}>{bot.start_command}</div>
                   </div>
-                  <div className="grid grid-cols-3 border-b border-white/5">
-                    <div className="p-4 text-gray-400 bg-white/5">Main File</div>
-                    <div className="p-4 col-span-2 text-yellow-400 font-mono">{bot.main_file}</div>
+                  <div className="grid grid-cols-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)' }}>Main File</div>
+                    <div style={{ padding: '16px', gridColumn: 'span 2', color: '#f1c40f', fontFamily: 'monospace' }}>{bot.main_file}</div>
                   </div>
                   <div className="grid grid-cols-3">
-                    <div className="p-4 text-gray-400 bg-white/5">Root Directory</div>
-                    <div className="p-4 col-span-2 text-gray-300 font-mono text-sm">{bot.directory}</div>
+                    <div style={{ padding: '16px', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.02)' }}>Root Directory</div>
+                    <div style={{ padding: '16px', gridColumn: 'span 2', color: '#ccc', fontFamily: 'monospace', fontSize: '0.85rem' }}>{bot.directory}</div>
                   </div>
                 </div>
               </div>
             )}
             
+          </div>
+        </div>
+      )}
+
+      {/* Custom Modal overlay */}
+      {modalConfig && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h3 className="modal-title">{modalConfig.title}</h3>
+            {modalConfig.type === 'prompt' ? (
+              <div style={{ marginBottom: '24px' }}>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '12px' }}>{modalConfig.message}</p>
+                <input 
+                  type="text" 
+                  className="clay-input" 
+                  id="modal-prompt-input"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      modalConfig.onConfirm(e.target.value);
+                      setModalConfig(null);
+                    }
+                  }}
+                />
+              </div>
+            ) : (
+              <p className="modal-body">{modalConfig.message}</p>
+            )}
+            <div className="modal-actions">
+              <button className="clay-btn" style={{ background: 'rgba(255,255,255,0.1)' }} onClick={() => setModalConfig(null)}>
+                {modalConfig.type === 'prompt' ? 'Cancel' : 'Close'}
+              </button>
+              {modalConfig.type === 'prompt' && (
+                <button className="clay-btn btn-success" onClick={() => {
+                  const val = document.getElementById('modal-prompt-input').value;
+                  modalConfig.onConfirm(val);
+                  setModalConfig(null);
+                }}>
+                  Confirm
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
