@@ -128,24 +128,6 @@ router.get('/:id/logs', authenticateToken, (req, res) => {
     });
 });
 
-// Upload files to bot directory (simplified for now)
-const multer = require('multer');
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        db.get("SELECT directory FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
-            if (err || !bot) return cb(new Error("Bot not found"));
-            cb(null, bot.directory);
-        });
-    },
-    filename: function (req, file, cb) {
-        cb(null, file.originalname);
-    }
-});
-const upload = multer({ storage: storage });
-
-router.post('/:id/upload', authenticateToken, upload.array('files'), (req, res) => {
-    res.json({ message: "Files uploaded successfully" });
-});
 
 // File list
 router.get('/:id/files', authenticateToken, (req, res) => {
