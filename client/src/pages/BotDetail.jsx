@@ -88,24 +88,33 @@ export default function BotDetail({ token, user }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ path: selectedFile, content: fileContent })
       });
-      if (res.ok) alert('File saved!');
+      if (res.ok) {
+        setModalConfig({ title: 'Success', type: 'alert', message: 'File saved successfully!' });
+      }
     } catch(e) { console.error(e); }
   };
 
   const deleteFile = async (filename) => {
-    if(!confirm(`Delete ${filename}?`)) return;
-    try {
-      const targetPath = currentPath ? `${currentPath}/${filename}` : filename;
-      const res = await fetch(`/api/bots/${id}/fs/delete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ path: targetPath })
-      });
-      if (res.ok) {
-        if(selectedFile === targetPath) setSelectedFile(null);
-        fetchFiles(currentPath);
+    setModalConfig({
+      title: "Confirm Deletion",
+      type: "prompt",
+      message: `Type 'yes' to permanently delete ${filename}:`,
+      onConfirm: async (val) => {
+        if (val.toLowerCase() !== 'yes') return;
+        try {
+          const targetPath = currentPath ? `${currentPath}/${filename}` : filename;
+          const res = await fetch(`/api/bots/${id}/fs/delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ path: targetPath })
+          });
+          if (res.ok) {
+            if(selectedFile === targetPath) setSelectedFile(null);
+            fetchFiles(currentPath);
+          }
+        } catch(e) { console.error(e); }
       }
-    } catch(e) { console.error(e); }
+    });
   };
 
   // --- ENV MANAGER ---
@@ -126,7 +135,9 @@ export default function BotDetail({ token, user }) {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ content: envContent })
       });
-      if (res.ok) alert('.env saved!');
+      if (res.ok) {
+        setModalConfig({ title: 'Success', type: 'alert', message: '.env saved successfully!' });
+      }
     } catch(e) { console.error(e); }
   };
 
@@ -316,11 +327,9 @@ export default function BotDetail({ token, user }) {
                   {f.isDirectory ? <Folder size={18} color="#f1c40f" /> : <FileText size={18} color="#3498db" />}
                   <span>{f.name}</span>
                 </div>
-                {!f.isDirectory && (
-                  <button onClick={() => deleteFile(f.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
-                    <Trash2 size={16} />
-                  </button>
-                )}
+                <button onClick={() => deleteFile(f.name)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}>
+                  <Trash2 size={16} />
+                </button>
               </div>
             ))}
             {files.length === 0 && <p style={{ color: 'var(--text-muted)' }}>Empty directory.</p>}
