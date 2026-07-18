@@ -128,7 +128,6 @@ router.get('/:id/logs', authenticateToken, (req, res) => {
         res.status(500).json({ error: e.message || 'Failed to get logs' });
       }
     });
-    });
 });
 
 // Clear bot logs
