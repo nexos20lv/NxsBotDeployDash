@@ -18,8 +18,8 @@ const authRoutes = require('./routes/auth');
 const botsRoutes = require('./routes/bots');
 const path = require('path');
 // API Routes
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/bots', require('./routes/bots'));
+app.use('/api/auth', authRoutes.router);
+app.use('/api/bots', botsRoutes);
 
 // GitHub Webhook Route
 const { exec } = require('child_process');
