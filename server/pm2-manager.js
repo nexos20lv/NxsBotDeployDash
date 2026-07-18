@@ -89,6 +89,26 @@ class PM2Manager {
       });
     });
   }
+
+  async getBotMetrics(botId) {
+    if (!this.connected) await this.connect();
+    return new Promise((resolve, reject) => {
+      pm2.describe(`bot_${botId}`, (err, description) => {
+        if (err) return reject(err);
+        if (!description || description.length === 0) return resolve({ cpu: 0, memory: 0 });
+
+        const proc = description[0];
+        const memoryMB = proc.monit ? (proc.monit.memory / 1024 / 1024).toFixed(2) : 0;
+        const cpuPercent = proc.monit ? proc.monit.cpu : 0;
+
+        resolve({
+          cpu: cpuPercent,
+          memory: memoryMB,
+          status: proc.pm2_env.status
+        });
+      });
+    });
+  }
   
   async getBotLogs(botId, lines = 100) {
     if (!this.connected) await this.connect();

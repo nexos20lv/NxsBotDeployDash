@@ -157,5 +157,165 @@ router.get('/:id/files', authenticateToken, (req, res) => {
     });
 });
 
+// --- ADVANCED FILE MANAGER ---
+
+// Helper to ensure path is inside bot directory
+const resolveSafePath = (baseDir, reqPath) => {
+  const targetPath = path.normalize(path.join(baseDir, reqPath || ''));
+  if (!targetPath.startsWith(path.normalize(baseDir))) {
+    throw new Error('Invalid path traversal attempt');
+  }
+  return targetPath;
+};
+
+// List files in a specific directory
+router.get('/:id/fs/list', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const targetDir = resolveSafePath(bot.directory, req.query.path || '');
+        if (!fs.existsSync(targetDir)) return res.json([]);
+        
+        const files = fs.readdirSync(targetDir, { withFileTypes: true }).map(dirent => ({
+          name: dirent.name,
+          isDirectory: dirent.isDirectory()
+        })).sort((a, b) => {
+          if (a.isDirectory === b.isDirectory) return a.name.localeCompare(b.name);
+          return a.isDirectory ? -1 : 1;
+        });
+        
+        res.json(files);
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// Read file content
+router.get('/:id/fs/read', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const targetFile = resolveSafePath(bot.directory, req.query.path);
+        if (!fs.existsSync(targetFile)) return res.status(404).json({ error: 'File not found' });
+        const content = fs.readFileSync(targetFile, 'utf8');
+        res.json({ content });
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// Write file content
+router.post('/:id/fs/write', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const targetFile = resolveSafePath(bot.directory, req.body.path);
+        fs.writeFileSync(targetFile, req.body.content || '', 'utf8');
+        res.json({ message: 'File saved successfully' });
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// Delete file or folder
+router.post('/:id/fs/delete', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const targetPath = resolveSafePath(bot.directory, req.body.path);
+        if (fs.existsSync(targetPath)) {
+          fs.rmSync(targetPath, { recursive: true, force: true });
+        }
+        res.json({ message: 'Deleted successfully' });
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// --- ENV MANAGER ---
+
+// Read .env
+router.get('/:id/env', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const envPath = resolveSafePath(bot.directory, '.env');
+        let content = '';
+        if (fs.existsSync(envPath)) content = fs.readFileSync(envPath, 'utf8');
+        res.json({ content });
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// Write .env
+router.post('/:id/env', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      try {
+        const envPath = resolveSafePath(bot.directory, '.env');
+        fs.writeFileSync(envPath, req.body.content || '', 'utf8');
+        res.json({ message: '.env saved successfully' });
+      } catch (e) {
+        res.status(400).json({ error: e.message });
+      }
+  });
+});
+
+// --- DEPENDENCIES INSTALLER ---
+router.post('/:id/install', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      const { exec } = require('child_process');
+      const cmd = bot.type === 'python' ? 'pip install -r requirements.txt' : 'npm install';
+      
+      exec(cmd, { cwd: bot.directory }, (error, stdout, stderr) => {
+        if (error) {
+          return res.status(500).json({ error: stderr || error.message });
+        }
+        res.json({ message: 'Dependencies installed successfully!', output: stdout });
+      });
+  });
+});
+
+// --- BACKUPS ---
+const archiver = require('archiver');
+
+router.get('/:id/backups/download', authenticateToken, (req, res) => {
+  db.get("SELECT * FROM bots WHERE id = ?", [req.params.id], (err, bot) => {
+      if (err || !bot) return res.status(404).json({ error: 'Bot not found' });
+      if (req.user.role !== 'admin' && bot.owner_id !== req.user.id) return res.sendStatus(403);
+      
+      res.attachment(`backup_${bot.name}_${Date.now()}.zip`);
+      const archive = archiver('zip', { zlib: { level: 9 } });
+      
+      archive.on('error', function(err) {
+        res.status(500).send({error: err.message});
+      });
+      
+      archive.pipe(res);
+      archive.directory(bot.directory, false);
+      archive.finalize();
+  });
+});
 
 module.exports = router;

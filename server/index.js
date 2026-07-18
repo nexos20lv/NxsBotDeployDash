@@ -17,9 +17,33 @@ app.use(express.json());
 const authRoutes = require('./routes/auth');
 const botsRoutes = require('./routes/bots');
 const path = require('path');
+// API Routes
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/bots', require('./routes/bots'));
 
-app.use('/api/auth', authRoutes.router);
-app.use('/api/bots', botsRoutes);
+// GitHub Webhook Route
+const { exec } = require('child_process');
+app.post('/api/webhooks/github/:id', (req, res) => {
+  const botId = req.params.id;
+  const db = require('./db');
+  db.get("SELECT * FROM bots WHERE id = ?", [botId], (err, bot) => {
+    if (err || !bot) return res.status(404).send('Bot not found');
+    
+    // Check if directory exists
+    const fs = require('fs');
+    if (!fs.existsSync(bot.directory)) return res.status(400).send('Bot directory not found');
+    
+    exec('git pull', { cwd: bot.directory }, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Git pull error: ${error}`);
+        return res.status(500).send('Failed to pull from GitHub');
+      }
+      pm2Manager.restartBot(botId).then(() => {
+        res.send('Deploy triggered and bot restarted');
+      }).catch(e => res.status(500).send(e.message));
+    });
+  });
+});
 
 // Serve static frontend
 app.use(express.static(path.join(__dirname, '../client/dist')));
@@ -33,21 +57,32 @@ wss.on('connection', (ws, req) => {
     
     // In a real app, you'd extract token from req.url or headers and verify it here
     
+    let subscribedBot = null;
     let logInterval;
     
     ws.on('message', async (message) => {
         try {
             const data = JSON.parse(message);
             if (data.action === 'subscribe_logs' && data.botId) {
+                subscribedBot = data.botId;
+                
                 // Clear any existing interval
                 if (logInterval) clearInterval(logInterval);
                 
+                // Send initial data
+                const logs = await pm2Manager.getBotLogs(subscribedBot);
+                ws.send(JSON.stringify({ type: 'logs', data: logs }));
+                const metrics = await pm2Manager.getBotMetrics(subscribedBot);
+                ws.send(JSON.stringify({ type: 'metrics', data: metrics }));
+                
                 logInterval = setInterval(async () => {
                     try {
-                        const logs = await pm2Manager.getBotLogs(data.botId, 50); // Get last 50 lines
+                        const logs = await pm2Manager.getBotLogs(subscribedBot, 50);
                         ws.send(JSON.stringify({ type: 'logs', data: logs }));
+                        const metrics = await pm2Manager.getBotMetrics(subscribedBot);
+                        ws.send(JSON.stringify({ type: 'metrics', data: metrics }));
                     } catch(e) {
-                        // ignore errors if bot is offline or no logs yet
+                        // ignore errors
                     }
                 }, 2000); // Poll every 2 seconds
             }
