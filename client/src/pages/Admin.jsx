@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, Server, Plus, Trash2, Download, Terminal } from 'lucide-react';
+import { Users, Server, Plus, Trash2, Download, Terminal, Activity, Cpu } from 'lucide-react';
 import Layout from '../components/Layout';
 
 export default function Admin({ token, user }) {
@@ -114,63 +114,127 @@ export default function Admin({ token, user }) {
     >
       <div className="mt-4">
 
-      <div className="grid grid-cols-2 gap-8">
+      <div className="flex-col gap-8 flex">
+        {/* Quick Stats */}
+        <div className="grid grid-cols-3 gap-6 mb-4">
+          <div className="clay-card flex items-center gap-4 p-6">
+            <div style={{ background: 'rgba(138, 43, 226, 0.2)', padding: '16px', borderRadius: '16px' }}>
+              <Users size={32} color="var(--accent)" />
+            </div>
+            <div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>TOTAL CLIENTS</p>
+              <h2 style={{ fontSize: '2rem', margin: 0 }}>{users.length}</h2>
+            </div>
+          </div>
+          <div className="clay-card flex items-center gap-4 p-6">
+            <div style={{ background: 'rgba(138, 43, 226, 0.2)', padding: '16px', borderRadius: '16px' }}>
+              <Server size={32} color="var(--accent)" />
+            </div>
+            <div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>TOTAL HOSTINGS</p>
+              <h2 style={{ fontSize: '2rem', margin: 0 }}>{bots.length}</h2>
+            </div>
+          </div>
+          <div className="clay-card flex items-center gap-4 p-6">
+            <div style={{ background: 'rgba(46, 204, 113, 0.2)', padding: '16px', borderRadius: '16px' }}>
+              <Activity size={32} color="var(--success)" />
+            </div>
+            <div>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: 'bold' }}>ONLINE BOTS</p>
+              <h2 style={{ fontSize: '2rem', margin: 0 }}>{bots.filter(b => b.status === 'online').length}</h2>
+            </div>
+          </div>
+        </div>
+
         {/* Users Section */}
-        <div className="clay-card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="flex items-center gap-2"><Users size={20} color="var(--accent)" /> Clients</h3>
-            <button className="clay-btn" onClick={() => setShowUserModal(true)}><Plus size={16} /> New Client</button>
+        <div className="clay-card p-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="flex items-center gap-3" style={{ fontSize: '1.4rem' }}>
+                <Users size={24} color="var(--accent)" /> Client Management
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>Create and manage access for your users</p>
+            </div>
+            <button className="clay-btn" onClick={() => setShowUserModal(true)}><Plus size={18} /> New Client</button>
           </div>
           
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <th className="py-2">ID</th>
-                <th>Username</th>
-                <th>Role</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map(u => (
-                <tr key={u.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td className="py-2">{u.id}</td>
-                  <td>{u.username}</td>
-                  <td><span className={u.role === 'admin' ? 'badge badge-online' : 'badge badge-offline'}>{u.role}</span></td>
-                  <td>
-                    <button onClick={() => handleDeleteUser(u.id)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={18} /></button>
-                  </td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="w-full text-left" style={{ borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>ID</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>Username</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>Role</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem', textAlign: 'right' }}>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map(u => (
+                  <tr key={u.id} style={{ background: 'rgba(0,0,0,0.15)', transition: 'background 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}>
+                    <td style={{ padding: '16px', borderRadius: '12px 0 0 12px' }}>#{u.id}</td>
+                    <td style={{ padding: '16px', fontWeight: '500' }}>{u.username}</td>
+                    <td style={{ padding: '16px' }}>
+                      <span className={u.role === 'admin' ? 'badge badge-online' : 'badge badge-offline'} style={{ padding: '6px 12px' }}>
+                        {u.role.toUpperCase()}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px', borderRadius: '0 12px 12px 0', textAlign: 'right' }}>
+                      <button onClick={() => handleDeleteUser(u.id)} style={{ background: 'rgba(231, 76, 60, 0.1)', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '8px', borderRadius: '8px', transition: 'all 0.2s' }} onMouseEnter={e => e.currentTarget.style.background='rgba(231, 76, 60, 0.2)'} onMouseLeave={e => e.currentTarget.style.background='rgba(231, 76, 60, 0.1)'}>
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Hostings Section */}
-        <div className="clay-card">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="flex items-center gap-2"><Server size={20} color="var(--accent)" /> All Hostings</h3>
-            <button className="clay-btn" onClick={() => setShowBotModal(true)}><Plus size={16} /> Create Hosting</button>
+        <div className="clay-card p-8">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h3 className="flex items-center gap-3" style={{ fontSize: '1.4rem' }}>
+                <Server size={24} color="var(--accent)" /> Hosting Allocation
+              </h3>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>Allocate bots and server instances to your clients</p>
+            </div>
+            <button className="clay-btn" onClick={() => setShowBotModal(true)}><Plus size={18} /> Create Hosting</button>
           </div>
 
-          <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
-                <th className="py-2">Bot Name</th>
-                <th>Owner</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bots.map(b => (
-                <tr key={b.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                  <td className="py-2">{b.name}</td>
-                  <td>{b.owner_name}</td>
-                  <td><span className={b.status === 'online' ? 'badge badge-online' : 'badge badge-offline'}>{b.status}</span></td>
+          <div style={{ overflowX: 'auto' }}>
+            <table className="w-full text-left" style={{ borderCollapse: 'separate', borderSpacing: '0 8px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>Bot Name</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>Owner</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem' }}>Type</th>
+                  <th style={{ padding: '0 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '0.9rem', textAlign: 'right' }}>Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bots.map(b => (
+                  <tr key={b.id} style={{ background: 'rgba(0,0,0,0.15)', transition: 'background 0.2s ease' }} onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'} onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.15)'}>
+                    <td style={{ padding: '16px', borderRadius: '12px 0 0 12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: b.status === 'online' ? 'var(--success)' : 'var(--danger)', boxShadow: `0 0 10px ${b.status === 'online' ? 'var(--success)' : 'var(--danger)'}` }}></div>
+                      {b.name}
+                    </td>
+                    <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{b.owner_name}</td>
+                    <td style={{ padding: '16px' }}>
+                      <span style={{ background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '8px', fontSize: '0.85rem' }}>
+                        {b.type}
+                      </span>
+                    </td>
+                    <td style={{ padding: '16px', borderRadius: '0 12px 12px 0', textAlign: 'right' }}>
+                      <span className={b.status === 'online' ? 'badge badge-online' : 'badge badge-offline'} style={{ padding: '6px 12px' }}>
+                        {b.status.toUpperCase()}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
