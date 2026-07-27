@@ -1,10 +1,10 @@
 <div align="center">
-  ![NxsBotDeployDash Banner](https://capsule-render.vercel.app/api?type=waving&color=0:7b2cbf,100:c77dff&height=200&section=header&text=NxsBotDeployDash&fontSize=50&fontAlignY=40&animation=twinkling&desc=Panel%20d)
+  ![NxsBotDeployDash Banner](https://capsule-render.vercel.app/api?type=waving&color=0:7b2cbf,100:c77dff&height=200&section=header&text=NxsBotDeployDash&fontSize=50&fontAlignY=40&animation=twinkling&desc=Panel%20d&fontColor=ffffff)
 
   <p align="center">
     ![Claymorphism Design](https://img.shields.io/badge/Design-Claymorphism_Violet-8A2BE2?style=for-the-badge)
     ![NodeJS](https://img.shields.io/badge/Backend-Node.js_20-2ECC71?style=for-the-badge&logo=node.js&logoColor=white)
-    ![React](https://img.shields.io/badge/Frontend-React_Vite-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+    ![React](https://img.shields.io/badge/Frontend-React_Vite-61DAFB?style=for-the-badge&logo=react&logoColor=white)
     ![PM2](https://img.shields.io/badge/Process_Manager-PM2-2B037A?style=for-the-badge&logo=pm2&logoColor=white)
     ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
   </p>
