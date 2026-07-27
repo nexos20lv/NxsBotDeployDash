@@ -1,5 +1,5 @@
 <div align="center">
-  ![NxsBotDeployDash Banner](https://capsule-render.vercel.app/api?type=waving&color=0:7b2cbf,100:c77dff&height=200&section=header&text=NxsBotDeployDash&fontSize=50&fontAlignY=40&animation=twinkling&desc=Panel%20d)
+  ![NxsBotDeployDash Banner](https://capsule-render.vercel.app/api?type=waving&color=0:7b2cbf,100:c77dff&height=200&section=header&text=NxsBotDeployDash&fontSize=50&fontAlignY=40&animation=twinkling&desc=Panel%20d&fontColor=ffffff)
 
   <p align="center">
     ![Claymorphism Design](https://img.shields.io/badge/Design-Claymorphism_Violet-8A2BE2?style=for-the-badge)
