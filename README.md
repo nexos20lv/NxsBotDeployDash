@@ -1,11 +1,11 @@
 <div align="center">
-  <img src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:7b2cbf,100:c77dff&amp;height=200&amp;section=header&amp;text=NxsBotDeployDash&amp;fontSize=50&amp;fontAlignY=40&amp;animation=twinkling&amp;desc=Panel%20d&amp;fontColor=ffffff" alt="NxsBotDeployDash Banner" />
+  <img src="https://capsule-render.vercel.app/api?type=waving&color=0:7b2cbf,100:c77dff&height=200&section=header&text=NxsBotDeployDash&fontSize=50&fontAlignY=40&animation=twinkling&desc=Panel%20d&fontColor=ffffff" alt="NxsBotDeployDash Banner" />
 
   <p align="center">
     <img src="https://img.shields.io/badge/Design-Claymorphism_Violet-8A2BE2?style=for-the-badge" alt="Claymorphism Design" />
-    <img src="https://img.shields.io/badge/Backend-Node.js_20-2ECC71?style=for-the-badge&amp;logo=node.js&amp;logoColor=white" alt="NodeJS" />
-    <img src="https://img.shields.io/badge/Frontend-React_Vite-61DAFB?style=for-the-badge&amp;logo=react&amp;logoColor=white" alt="React" />
-    <img src="https://img.shields.io/badge/Process_Manager-PM2-2B037A?style=for-the-badge&amp;logo=pm2&amp;logoColor=white" alt="PM2" />
+    <img src="https://img.shields.io/badge/Backend-Node.js_20-2ECC71?style=for-the-badge&logo=node.js&logoColor=white" alt="NodeJS" />
+    <img src="https://img.shields.io/badge/Frontend-React_Vite-61DAFB?style=for-the-badge&logo=react&logoColor=white" alt="React" />
+    <img src="https://img.shields.io/badge/Process_Manager-PM2-2B037A?style=for-the-badge&logo=pm2&logoColor=white" alt="PM2" />
     <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License" />
   </p>
 
